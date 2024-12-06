@@ -36,7 +36,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
-// LOTUS REDGREEN TELEOP DEC. 5, 24
+// LOTUS REDGREEN TELEOP DEC. 5, 24 ~~ linear slide limits don't work well
 
 @TeleOp(name="Robot: RedGreenTeleOp", group="Robot")
 //@Disabled
