@@ -54,11 +54,16 @@ public class RedGreenTeleOp extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        double left;
-        double right;
+        double frontLeft;
+        double frontRight;
+        double backLeft;
+        double backRight;
         double drive;
+        double strafeLeft;
+        double strafeRight;
         double turn;
         double max;
+        double maxx;
 
         mFL  = hardwareMap.get(DcMotor.class, "mFL");
         mFR  = hardwareMap.get(DcMotor.class, "mFR");
@@ -74,14 +79,15 @@ public class RedGreenTeleOp extends LinearOpMode {
         mArm.setDirection(DcMotor.Direction.REVERSE);
         mLS.setDirection(DcMotor.Direction.REVERSE);
 
+        mArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        mLS.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
         mFL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mLS.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        //zero power
 
         Intake  = hardwareMap.get(Servo.class, "Intake");
         Intake.setPosition(0.5);
@@ -96,47 +102,97 @@ public class RedGreenTeleOp extends LinearOpMode {
         while (opModeIsActive()) {
 
             // Drivetrain
-            drive = -gamepad1.left_stick_y;
-            turn  =  gamepad1.right_stick_x;
+            drive  = -gamepad1.left_stick_y;
+            turn   =  gamepad1.right_stick_x;
+            strafeLeft  =  - gamepad1.left_trigger;
+            strafeRight =  gamepad1.right_trigger;
 
-            left  = drive + turn;
-            right = drive - turn;
+            frontLeft  = drive + strafeLeft + strafeRight + turn;
+            frontRight = drive - strafeLeft - strafeRight - turn;
+            backLeft   = drive - strafeLeft - strafeRight + turn;
+            backRight  = drive + strafeLeft + strafeRight - turn;
 
-            max = Math.max(Math.abs(left), Math.abs(right));
+            max = Math.max(Math.abs(backLeft), Math.abs(backRight));
             if (max > 1.0)
             {
-                left /= max;
-                right /= max;
+                backLeft   /= max;
+                backRight  /= max;
             }
 
-            mFL.setPower(left);
-            mFR.setPower(right);
-            mBL.setPower(left);
-            mBR.setPower(right);
+            maxx = Math.max(Math.abs(frontLeft), Math.abs(frontRight));
+            if (maxx > 1.0)
+            {
+                frontLeft  /= maxx;
+                frontRight /= maxx;
+            }
+
+            mFL.setPower(frontLeft);
+            mFR.setPower(frontRight);
+            mBL.setPower(backLeft);
+            mBR.setPower(backRight);
 
 
-            // Arm - up (Y), down (A)
-            if (gamepad1.y)
+// Arm - up (Y), down (A)
+            if (gamepad2.y)
                 mArm.setPower(0.6);
-            else if (gamepad1.a)
+            else if (gamepad2.a)
                 mArm.setPower(-0.6);
             else
                 mArm.setPower(0.0);
 
+            // Arm lower limit
+            if (mArm.getCurrentPosition() < 10) {
+                mArm.setTargetPosition(10);
+                mArm.setPower(0.3);
+            }
+            else if (mArm.getCurrentPosition() < 5) {
+                mArm.setPower(0);
+            }
 
-            // Linear Slide - up (dpad up), down (dpad down)
-            if (gamepad1.dpad_up)
-                mLS.setPower(0.6);
-            else if (gamepad1.dpad_down)
-                mLS.setPower(-0.6);
+            // Arm upper limit
+            if (mArm.getCurrentPosition() > 7130) {
+                mArm.setTargetPosition(7130);
+                mArm.setPower(-0.3);
+            }
+            else if (mArm.getCurrentPosition() > 7140) {
+                mArm.setPower(0);
+            }
+
+
+// Linear Slide - up (dpad up), down (dpad down), zero position (x)
+            if (gamepad2.dpad_up)
+                mLS.setPower(0.9);
+            else if (gamepad2.dpad_down)
+                mLS.setPower(-0.9);
+            else if (gamepad2.x) {
+                mLS.setTargetPosition(0);
+                mLS.setPower(-0.9);
+            }
             else
                 mLS.setPower(0.0);
 
+            // Linear lower limit
+            if (mLS.getCurrentPosition() < 10) {
+                mLS.setTargetPosition(10);
+                mLS.setPower(0.5);
+            }
+            else if (mLS.getCurrentPosition() < 5) {
+                mLS.setPower(0);
+            }
 
-            //Intake - open (), close ()left & right Bumpers to open and close the claw
-            if (gamepad1.right_bumper)
+            // Linear upper limit
+            if (mLS.getCurrentPosition() > 29140) {
+                mLS.setTargetPosition(29140);
+                mLS.setPower(0.5);
+            }
+            else if (mLS.getCurrentPosition() > 29150)
+                mLS.setPower(0);
+
+
+//Intake - forward (left bumper), backward (right bumpers) -----------------check
+            if (gamepad2.right_bumper)
                 clawOffset += 0.2;
-            else if (gamepad1.left_bumper)
+            else if (gamepad2.left_bumper)
                 clawOffset -= 0.2;
             else
                 clawOffset = 0;
@@ -145,14 +201,14 @@ public class RedGreenTeleOp extends LinearOpMode {
             Intake.setPosition(0.5 + clawOffset);
 
 
-            // Send telemetry message to signify robot running;
+// Send telemetry message to signify robot running;
             telemetry.addData("Intake",  "Offset = %.2f", clawOffset);
-            telemetry.addData("left",  "%.2f", left);
-            telemetry.addData("right", "%.2f", right);
+//            telemetry.addData("left",  "%.2f", left);
+//            telemetry.addData("right", "%.2f", right);
+            telemetry.addData("arm", mArm.getCurrentPosition());
+            telemetry.addData("linear", mLS.getCurrentPosition());
             telemetry.update();
 
-            // Pace this loop so jaw action is reasonable speed.
-            sleep(50);
         }
     }
 }
