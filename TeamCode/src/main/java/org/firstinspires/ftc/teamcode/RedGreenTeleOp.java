@@ -38,6 +38,8 @@ import com.qualcomm.robotcore.util.Range;
 
 // LOTUS REDGREEN TELEOP DEC. 5, 24 ~~ linear slide limits don't work well
 
+//NOTE: CHANGE CLAWOFFSET NAME
+
 @TeleOp(name="Robot: RedGreenTeleOp", group="Robot")
 //@Disabled
 public class RedGreenTeleOp extends LinearOpMode {
