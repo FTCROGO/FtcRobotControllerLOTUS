@@ -32,6 +32,8 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 /*
@@ -43,10 +45,13 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class RedGreenAuto extends LinearOpMode {
 
     /* Declare OpMode members. */
-    private DcMotor         mFL   = null;
-    private DcMotor         mFR   = null;
-    private DcMotor         mBL   = null;
-    private DcMotor         mBR   = null;
+    private DcMotor         mFL    = null;
+    private DcMotor         mFR    = null;
+    private DcMotor         mBL    = null;
+    private DcMotor         mBR    = null;
+    private DcMotor         mArm   = null;
+    private DcMotor         mLS    = null;
+    private Servo           Intake = null;
 
     private ElapsedTime     runtime = new ElapsedTime();
 
@@ -69,51 +74,88 @@ public class RedGreenAuto extends LinearOpMode {
 
         // Initialize the drive system variables.
         mFL  = hardwareMap.get(DcMotor.class, "mFL");
-        mFR = hardwareMap.get(DcMotor.class, "mFR");
+        mFR  = hardwareMap.get(DcMotor.class, "mFR");
         mBL  = hardwareMap.get(DcMotor.class, "mFL");
-        mBR = hardwareMap.get(DcMotor.class, "mFR");
+        mBR  = hardwareMap.get(DcMotor.class, "mFR");
+        mArm = hardwareMap.get(DcMotor.class, "mArm");
+        mLS  = hardwareMap.get(DcMotor.class, "mLS");
 
         mFL.setDirection(DcMotor.Direction.REVERSE);
         mFR.setDirection(DcMotor.Direction.FORWARD);
         mBL.setDirection(DcMotor.Direction.REVERSE);
         mBR.setDirection(DcMotor.Direction.FORWARD);
+        mArm.setDirection(DcMotor.Direction.REVERSE);
+        mLS.setDirection(DcMotor.Direction.REVERSE);
 
         mFL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         mFR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         mBL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         mBR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        mArm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        mLS.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         mFL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         mBR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        mArm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        mLS.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         telemetry.addData("Starting at",  "%7d :%7d",
                           mFL.getCurrentPosition(),
                           mFR.getCurrentPosition(),
                           mBL.getCurrentPosition(),
-                          mBR.getCurrentPosition());
+                          mBR.getCurrentPosition(),
+                          mArm.getCurrentPosition(),
+                          mLS.getCurrentPosition());
         telemetry.update();
 
         waitForStart();
 
-        encoderDrive(DRIVE_SPEED,  48,  48, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
-        encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
-        encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
+// Drive to basket
+        encoderDrive(DRIVE_SPEED,  19, 19, 5.0);
+        encoderDrive(TURN_SPEED,   -12, 24, 4.0);
+        encoderDrive(DRIVE_SPEED, 15, 15, 4.0);
+
+//Position arm and linear slide
+        mLS.setTargetPosition(29000);
+        mLS.setPower(1);
+        sleep(100);
+        mArm.setTargetPosition(3500);
+        mArm.setPower(0.6);
+        sleep(100);
+
+// Drop sample
+        Intake.setPosition(1);
+        sleep(100);
+
+ // Lower arm and linear slide
+        mArm.setTargetPosition(10);
+        mArm.setPower(0.6);
+        sleep(100);
+        mLS.setTargetPosition(100);
+        mLS.setPower(1);
+        sleep(100);
+
+//Strafe and go to submersible
+        encoderDrive(TURN_SPEED,   24, -12, 4.0);
+        mFL.setPower(1);
+        mFR.setPower(-1);
+        mBL.setPower(-1);
+        mBR.setPower(1);
+        sleep(1000);
+        encoderDrive(DRIVE_SPEED, 12, 12, 4.0);
+
+
+
+
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
-        sleep(1000);  // pause to display final telemetry message.
+        sleep(1000);
     }
 
-    /*
-     *  Method to perform a relative move, based on encoder counts.
-     *  Encoders are not reset as the move is based on the current position.
-     *  Move will stop if any of three conditions occur:
-     *  1) Move gets to the desired position
-     *  2) Move runs out of time
-     *  3) Driver stops the OpMode running.
-     */
+
     public void encoderDrive(double speed,
                              double leftInches, double rightInches,
                              double timeoutS) {
@@ -122,7 +164,6 @@ public class RedGreenAuto extends LinearOpMode {
         int newBackLeftTarget;
         int newBackRightTarget;
 
-        // Ensure that the OpMode is still active
         if (opModeIsActive()) {
 
             // Determine new target position, and pass to motor controller
@@ -157,7 +198,6 @@ public class RedGreenAuto extends LinearOpMode {
                    (runtime.seconds() < timeoutS) &&
                    (mFL.isBusy() && mFR.isBusy() && mBL.isBusy() && mBR.isBusy())) {
 
-                // Display it for the driver.
                 telemetry.addData("Running to",  " %7d :%7d", newFrontLeftTarget, newFrontRightTarget, newBackLeftTarget, newBackRightTarget);
                 telemetry.addData("Currently at",  " at %7d :%7d",
                                             mFL.getCurrentPosition(), mFR.getCurrentPosition(),
@@ -165,13 +205,11 @@ public class RedGreenAuto extends LinearOpMode {
                 telemetry.update();
             }
 
-            // Stop all motion;
             mFL.setPower(0);
             mFR.setPower(0);
             mBL.setPower(0);
             mBR.setPower(0);
 
-            // Turn off RUN_TO_POSITION
             mFL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             mFR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             mBL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);

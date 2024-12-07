@@ -130,6 +130,7 @@ public class RedGreenTeleOp extends LinearOpMode {
                 frontRight /= maxx;
             }
 
+
             mFL.setPower(frontLeft);
             mFR.setPower(frontRight);
             mBL.setPower(backLeft);
@@ -165,12 +166,12 @@ public class RedGreenTeleOp extends LinearOpMode {
 
 // Linear Slide - up (dpad up), down (dpad down), zero position (x)
             if (gamepad2.dpad_up)
-                mLS.setPower(0.9);
+                mLS.setPower(1);
             else if (gamepad2.dpad_down)
-                mLS.setPower(-0.9);
+                mLS.setPower(-1);
             else if (gamepad2.x) {
                 mLS.setTargetPosition(0);
-                mLS.setPower(-0.9);
+                mLS.setPower(-1);
             }
             else
                 mLS.setPower(0.0);
