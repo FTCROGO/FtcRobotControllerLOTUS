@@ -36,6 +36,10 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+// V1 REDGREEN
+
+
+
 /*
  *  The code is written using a method called: encoderDrive(speed, leftInches, rightInches, timeoutS)
  */
